@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <title>TicMan - Tickets</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link rel='stylesheet' href='/stylesheets/showticketstyle.css'/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/css/toastr.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.5/font/bootstrap-icons.min.css">
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/js/toastr.min.js"></script>
+</head>
+<body>
+<div class="background"></div>
+<br>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top bg-gradient">
+    <a class="navbar-brand" href="/dashboard">TicMan</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"
+            aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ml-auto">
+            <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" id="notificationDropdown" role="button" data-toggle="dropdown"
+                   aria-haspopup="true" aria-expanded="false">
+                    <i class="bi bi-bell-fill"></i>
+                    <span class="badge badge-danger" id="unreadNotifications">0</span>
+                    <!-- Beispiel: Anzahl der Benachrichtigungen -->
+                </a>
+                <div class="dropdown-menu dropdown-menu-right" id="notificationContainer"
+                     aria-labelledby="notificationDropdown">
+                </div>
+            </li>
+            <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" id="userDropdown" role="button" data-toggle="dropdown"
+                   aria-haspopup="true" aria-expanded="false">
+                    <img src="/<%= profileImageUrl %>" alt="Profile Picture" class="rounded-circle" width="30"
+                         height="30" style="margin-right: 10px;">
+                    <%= name %>
+                </a>
+                <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown">
+                    <a class="dropdown-item" href="/dashboard">Dashboard</a>
+                    <a class="dropdown-item" href="/profile">Profile</a>
+                    <% if(permission.role != "user") { %>
+                        <a class="dropdown-item" href="/tickets">Tickets</a>
+                        <% if(permission.role == "superadmin" || permission.permissions.includes("createserverdepartment") || permission.permissions.includes("createservercategory")) { %>
+                            <a class="dropdown-item" href="/server">Settings</a>
+                        <% } %>
+                        <% if(permission.role == "superadmin" || permission.permissions.includes("showuser")) { %>
+                            <a class="dropdown-item" href="/users">Users</a>
+                        <% } %>
+                    <% } %>
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item" href="/login/logout">Logout</a>
+                </div>
+            </li>
+        </ul>
+    </div>
+</nav>
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card" style="width: 70rem;">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>Ticket ID: <%= ticket.id %> | <%= ticket.title %></span>
+                    <ul class="nav nav-tabs card-header-tabs" id="myTab" role="tablist">
+                        <li class="nav-item">
+                            <a class="nav-link active" id="overview-tab" data-toggle="tab" href="#overview" role="tab"
+                               aria-controls="overview" aria-selected="true">
+                                <i class="bi bi-arrow-clockwise"></i> General
+                            </a>
+                        </li>
+                        <% if(permission.role != "user") { %>
+                            <li class="nav-item">
+                                <a class="nav-link" id="worklogs-tab" data-toggle="tab" href="#worklogs" role="tab"
+                                   aria-controls="worklogs" aria-selected="false">
+                                    <i class="bi bi-alarm-fill"></i> Work Logs
+                                </a>
+                            </li>
+                        <% } %>
+                        <li class="nav-item">
+                            <a class="nav-link" id="comments-tab" data-toggle="tab" href="#comments" role="tab"
+                               aria-controls="comments" aria-selected="false">
+                                <i class="fas fa-comments"></i> Comments
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="files-tab" data-toggle="tab" href="#files" role="tab"
+                               aria-controls="settings" aria-selected="false">
+                                <i class="fa-solid fa-file"></i> Files
+                            </a>
+                        </li>
+                        <% if(permission.role != "user") { %>
+                            <li class="nav-item">
+                                <a class="nav-link" id="settings-tab" data-toggle="tab" href="#settings" role="tab"
+                                   aria-controls="settings" aria-selected="false">
+                                    <i class="fa-solid fa-gear"></i> Settings
+                                </a>
+                            </li>
+                        <% } %>
+                    </ul>
+                </div>
+                <div class="card-body tab-content" id="myTabContent">
+                    <div class="tab-pane fade show active" id="overview" role="tabpanel" aria-labelledby="overview-tab">
+                        <form action="/tickets/editTicket/<%= ticket.id %>" method="POST">
+                            <% if(permission.role != "user") { %>
+                                <div class="form-group">
+                                    <label for="title">Title:</label>
+                                    <input type="text" class="form-control" id="title" name="title"
+                                           value="<%= ticket.title %>" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="description">Description:</label>
+                                    <textarea class="form-control textarea-formatted" id="description"
+                                              name="description"
+                                              rows="5" required><%= ticket.description %></textarea>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="priority">Priority:</label>
+                                    <select class="form-control" id="priority" name="priority">
+                                        <option value="0" <%= ticket.priority === 0 ? 'selected' : '' %>>Low</option>
+                                        <option value="1" <%= ticket.priority === 1 ? 'selected' : '' %>>Medium</option>
+                                        <option value="2" <%= ticket.priority === 2 ? 'selected' : '' %>>High</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="status">Status:</label>
+                                    <select class="form-control" id="status" name="status">
+                                        <option value="1" <%= ticket.status === 1 ? 'selected' : '' %>>Open</option>
+                                        <option value="3" <%= ticket.status === 3 ? 'selected' : '' %>>In Progress
+                                        </option>
+                                        <option value="2" <%= ticket.status === 2 ? 'selected' : '' %>>Closed</option>
+                                    </select>
+                                </div>
+                                <% if(permission.role == "superadmin" || permission.permissions.includes("editticket")) { %>
+                                    <button type="submit" class="btn btn-primary">Update</button>
+                                <% } %>
+                                <a href="/tickets" class="btn btn-danger">Cancel</a>
+                            <% } else { %>
+                                <div class="form-group">
+                                    <label for="title">Title:</label>
+                                    <input type="text" class="form-control" id="title" name="title"
+                                           value="<%= ticket.title %>" disabled>
+                                </div>
+                                <div class="form-group">
+                                    <label for="description">Description:</label>
+                                    <textarea class="form-control textarea-formatted" id="description"
+                                              name="description"
+                                              rows="5" disabled><%= ticket.description %></textarea>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="priority">Priority:</label>
+                                    <select class="form-control" id="priority" name="priority" disabled>
+                                        <option value="0" <%= ticket.priority === 0 ? 'selected' : '' %>>Low</option>
+                                        <option value="1" <%= ticket.priority === 1 ? 'selected' : '' %>>Medium</option>
+                                        <option value="2" <%= ticket.priority === 2 ? 'selected' : '' %>>High</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="status">Status:</label>
+                                    <select class="form-control" id="status" name="status" disabled>
+                                        <option value="1" <%= ticket.status === 1 ? 'selected' : '' %>>Open</option>
+                                        <option value="3" <%= ticket.status === 3 ? 'selected' : '' %>>In Progress
+                                        </option>
+                                        <option value="2" <%= ticket.status === 2 ? 'selected' : '' %>>Closed</option>
+                                    </select>
+                                </div>
+                            <% } %>
+                        </form>
+                    </div>
+                    <div class="tab-pane fade" id="worklogs" role="tabpanel" aria-labelledby="worklogs-tab">
+                        <div class="worklog-section mt-3">
+                            <h2>Work Logs (<span id="totalWorkTime">0h 0m 0s</span>)</h2>
+                            <div class="form-group">
+                                <button type="button" class="btn btn-success" onclick="startTimer()"><i
+                                            class="fa-solid fa-clock"></i> Start
+                                </button>
+                                <button type="button" class="btn btn-danger" onclick="stopTimer()"><i
+                                            class="fa-solid fa-clock"></i> Stop
+                                </button>
+                            </div>
+                            <ul id="workLogs" class="list-group">
+                                <!-- Work logs will be appended here by JavaScript -->
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="comments" role="tabpanel" aria-labelledby="comments-tab">
+                        <div class="comment-section mt-3">
+                            <h2>Add Comment</h2>
+                            <form action="/tickets/comments/<%= ticket.id %>" method="POST">
+                                <div class="form-group">
+                                    <label for="content">Content</label>
+                                    <textarea class="form-control" id="content" name="content" rows="3"
+                                              required></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-comment"></i> Add
+                                </button>
+                            </form>
+                        </div>
+                        <div class="comment-section">
+                            <h2>Comments</h2>
+                            <% comments.forEach(comment => { %>
+                                <div class="card mt-4 comment-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Comment by: <%= comment.user %>
+                                            (<%= new Date(comment.time).toLocaleString('de-DE', {
+                                                year: 'numeric',
+                                                month: '2-digit',
+                                                day: '2-digit',
+                                                hour: '2-digit',
+                                                minute: '2-digit'
+                                            }) %>)</h5>
+                                        <p class="card-text"><%= comment.comment %></p>
+                                        <!-- Weitere Informationen zu Kommentaren, wie Datum, Zeit, usw., können hier angezeigt werden -->
+                                    </div>
+                                </div>
+                            <% }) %>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="settings" role="tabpanel" aria-labelledby="comments-tab">
+                        <% if(permission.role == "superadmin" || permission.permissions.includes("editticketassignment")) { %>
+                            <div class="form-group">
+                                <label for="assignee">Assigned to:</label>
+                                <form action="/tickets/addUser/<%= ticket.id %>" method="POST">
+                                    <select class="form-control" id="assignee" name="assignedTo">
+                                        <% users.forEach(user => { %>
+                                            <option value="<%= user.id %>"><%= user.name %>
+                                                [<%= user.role %>]
+                                            </option>
+                                        <% }) %>
+                                    </select>
+                                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Add
+                                    </button>
+                                </form>
+                            </div>
+                            <table class="table">
+                                <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Action</th>
+                                </tr>
+                                </thead>
+                                <tbody id="selectedUsersTable">
+                                <% assignUser.forEach(user => { %>
+                                    <tr>
+                                        <td><%= user.id %></td>
+                                        <td><%= user.name %></td>
+                                        <td><a style="color: black"
+                                               href="/tickets/removeUser/<%= user.id %>/<%= ticket.id %>"><i
+                                                        class="fa-solid fa-user-minus"></i> Remove</a></td>
+                                    </tr>
+                                <% }) %>
+                                </tbody>
+                            </table>
+                        <% } %>
+                        <% if(permission.role == "superadmin" || permission.permissions.includes("editticketcategory")) { %>
+
+                            <div class="form-group">
+                                <label for="assignee">Select Categories:</label>
+                                <form action="/tickets/addCategory/<%= ticket.id %>" method="POST">
+                                    <select class="form-control" id="assignee" name="category">
+                                        <% categories.forEach(category => { %>
+                                            <option value="<%= category.id %>"><%= category.category %></option>
+                                        <% }) %>
+                                    </select>
+                                    <button class="btn btn-primary"><i class="fa-solid fa-plus"></i> Add</button>
+                                </form>
+                            </div>
+                            <table class="table">
+                                <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Action</th>
+                                </tr>
+                                </thead>
+                                <tbody id="selectedCategoriesTable">
+                                <% assignCategories.forEach(category => { %>
+                                    <tr>
+                                        <td><%= category.id %></td>
+                                        <td><%= category.name %></td>
+                                        <td><a style="color: black"
+                                               href="/tickets/removeCategory/<%= category.id %>/<%= ticket.id %>"><i
+                                                        class="fa-solid fa-user-minus"></i> Remove</a></td>
+                                    </tr>
+                                <% }) %>
+                                </tbody>
+                            </table>
+                        <% } %>
+                        <% if(permission.role == "superadmin" || permission.permissions.includes("editticketdepartment")) { %>
+                            <div class="form-group">
+                                <label for="assignee">Select Departments:</label>
+                                <form action="/tickets/addDepartment/<%= ticket.id %>" method="POST">
+                                    <select class="form-control" id="assignee" name="department">
+                                        <% departments.forEach(department => { %>
+                                            <option value="<%= department.id %>"><%= department.department %></option>
+                                        <% }) %>
+                                    </select>
+                                    <button class="btn btn-primary"><i class="fa-solid fa-plus"></i> Add</button>
+                                </form>
+                            </div>
+                            <table class="table">
+                                <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Action</th>
+                                </tr>
+                                </thead>
+                                <tbody id="selectedCategoriesTable">
+                                <% assignDepartments.forEach(category => { %>
+                                    <tr>
+                                        <td><%= category.id %></td>
+                                        <td><%= category.name %></td>
+                                        <td><a style="color: black"
+                                               href="/tickets/removeDepartment/<%= category.id %>/<%= ticket.id %>"><i
+                                                        class="fa-solid fa-user-minus"></i> Remove</a></td>
+                                    </tr>
+                                <% }) %>
+                                </tbody>
+                            </table>
+                        <% } %>
+                    </div>
+
+                    <div class="tab-pane fade" id="files" role="tabpanel" aria-labelledby="comments-tab">
+                        <div class="form-group">
+                            <form action="/tickets/attachment/upload/<%= ticket.id %>" method="POST"
+                                  enctype="multipart/form-data">
+                                <button type="submit" class="btn btn-primary">Upload</button>
+                                <input type="file" id="attachments" name="attachments" multiple required>
+                            </form>
+                            <br>
+                            <br>
+                            <label for="attachments">Attachments:</label>
+                            <ul>
+                                <% attachments.forEach(attachment => { %>
+                                    <li>
+                                        <a href="/tickets/attachment/download/<%= attachment.id %>"><%= attachment.fileName %></a>
+                                    </li>
+                                <% }) %>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    if (window.location.hash === "#files") {
+        $('#files-tab').addClass('active');
+        $('#files').addClass('show active');
+        $('#overview-tab').removeClass('active');
+        $('#overview').removeClass('show active');
+    }
+    if (window.location.hash === "#comments") {
+        $('#comments-tab').addClass('active');
+        $('#comments').addClass('show active');
+        $('#overview-tab').removeClass('active');
+        $('#overview').removeClass('show active');
+    }
+    if (window.location.hash === "#settings") {
+        $('#settings-tab').addClass('active');
+        $('#settings').addClass('show active');
+        $('#overview-tab').removeClass('active');
+        $('#overview').removeClass('show active');
+    }
+    let currentWorkLogId = null;
+    timeOption = {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    }
+    timeFormat = 'de-DE'
+
+    function startTimer() {
+        const ticketId = '<%= ticket.id %>';
+        const userId = '<%= user_id %>';  // Stellen Sie sicher, dass user.id in der Vorlage verfügbar ist
+
+        $.ajax({
+            url: '/tickets/worklog/start',
+            type: 'POST',
+            data: {ticketId, userId},
+            success: function (workLog) {
+                currentWorkLogId = workLog.id;
+                toastr.success('Timer started successfully');
+                fetchWorkLogs();  // Aktualisieren Sie die Work Logs-Anzeige
+            },
+            error: function (error) {
+                console.error('Error starting timer:', error);
+                toastr.error('Error starting timer');
+            }
+        });
+    }
+
+    function stopTimer() {
+        if (!currentWorkLogId) {
+            toastr.error('No timer is running');
+            return;
+        }
+
+        $.ajax({
+            url: '/tickets/worklog/stop',
+            type: 'POST',
+            data: {workLogId: currentWorkLogId},
+            success: function (workLog) {
+                currentWorkLogId = null;
+                toastr.success('Timer stopped');
+                fetchWorkLogs();  // Aktualisieren Sie die Work Logs-Anzeige
+            },
+            error: function (error) {
+                console.error('Error stopping timer:', error);
+                toastr.error('Error stopping timer');
+            }
+        });
+    }
+
+    function fetchWorkLogs() {
+        const ticketId = '<%= ticket.id %>';
+
+        $.ajax({
+            url: `/tickets/worklog/${ticketId}`,
+            type: 'GET',
+            success: function (workLogs) {
+                const workLogsContainer = $('#workLogs');
+                workLogsContainer.empty();
+                let totalDurationMs = 0;
+
+                workLogs.forEach(log => {
+                    const startTime = new Date(log.startTime).toLocaleString(timeFormat, timeOption);
+                    const endTime = log.endTime ? new Date(log.endTime).toLocaleString(timeFormat, timeOption) : 'In Progress';
+                    const duration = log.endTime ? calculateDuration(log.startTime, log.endTime) : '';
+                    const durationMs = log.endTime ? new Date(log.endTime) - new Date(log.startTime) : 0;
+
+                    totalDurationMs += durationMs;
+                    if (!log.endTime) currentWorkLogId = log.id;
+
+                    const logItem = `
+                        <li class="list-group-item">
+                            <strong>Start:</strong> ${startTime} <br>
+                            <strong>End:</strong> ${endTime} <br>
+                            <strong>User:</strong> ${log.editor} <br>
+                            <strong>Duration:</strong> ${duration}
+                        </li>
+                    `;
+                    workLogsContainer.append(logItem);
+                });
+                const totalDuration = calculateDurationFromMs(totalDurationMs);
+                $('#totalWorkTime').text(totalDuration);
+            },
+            error: function (error) {
+                console.error('Error fetching work logs:', error);
+                toastr.error('Error fetching work logs');
+            }
+        });
+    }
+
+    function calculateDuration(start, end) {
+        const startTime = new Date(start);
+        const endTime = new Date(end);
+        const durationMs = endTime - startTime;
+
+        return calculateDurationFromMs(durationMs);
+    }
+
+    function calculateDurationFromMs(durationMs) {
+        const hours = Math.floor(durationMs / (1000 * 60 * 60));
+        const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((durationMs % (1000 * 60)) / 1000);
+
+        return `${hours}h ${minutes}m ${seconds}s`;
+    }
+
+    function fetchNotification() {
+        const userId = '<%= user_id %>';
+        let unreadNotifications = 0;
+        $.ajax({
+            url: `/notifications/user_notification/${userId}`,
+            type: 'GET',
+            success: function (notification) {
+                const notificationContainer = $('#notificationContainer');
+                notificationContainer.empty();
+
+                notification.forEach(notify => {
+                    if (notify.isRead == false) unreadNotifications++;
+                    const notifyItem = `
+                        <a class="dropdown-item" href="/notifications/read_notification/${notify.id}">${notify.title}</a>
+                    `;
+                    notificationContainer.append(notifyItem);
+                });
+                if (unreadNotifications > 0) {
+                    $('#unreadNotifications').html(unreadNotifications);
+                    $('#unreadNotifications').show();
+                } else {
+                    $('#unreadNotifications').hide();
+                }
+            },
+            error: function (error) {
+                console.error('Error fetching notifications:', error);
+                toastr.error('Error fetching notifications');
+            }
+        });
+    }
+
+
+    var notificationTimer = setInterval(function () {
+        fetchNotification();
+    }, 5000);
+    // Laden Sie die Work Logs, wenn die Seite geladen wird
+    $(document).ready(function () {
+        fetchWorkLogs();
+        fetchNotification();
+    });
+</script>
+
+</body>
+</html>

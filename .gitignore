@@ -1,0 +1,19 @@
+# Node modules
+node_modules/
+
+# Environment variables
+.env.example
+
+# Log files
+*.log
+
+# Betriebssystem-spezifische Dateien
+.DS_Store
+Thumbs.db
+
+# PHPStorm-spezifische Dateien
+.idea/
+
+# Build-Verzeichnisse
+/dist
+/build
